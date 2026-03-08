@@ -2,7 +2,7 @@
 
 ![Go Version](https://img.shields.io/badge/Go-1.22+-00ADD8?style=for-the-badge&logo=go)
 ![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
-![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux-blue?style=for-the-badge&logo=windows)
+![Platform](https://img.shields.io/badge/Platform-Windows-blue?style=for-the-badge&logo=windows)
 ![Version](https://img.shields.io/badge/Version-4.4.7-red?style=for-the-badge)
 
 ```text
@@ -410,3 +410,4 @@ ADReaper is designed to work alongside:
 
 For authorized penetration testing and red team operations only.
 © 2026 — ADReaper Project
+
